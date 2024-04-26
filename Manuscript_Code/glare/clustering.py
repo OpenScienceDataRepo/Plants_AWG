@@ -66,13 +66,13 @@ class GLARECluster:
         # Run base clustering algorithms to get all labels
         with tqdm(total=3, desc="Running Base Clustering...") as pbar:
             # Run GMM
-            self.df = GLARECluster.gmm_cluster(self.df)
+            self.df = self.gmm_cluster(self.df)
             pbar.update(1)
             # Run HDBSCAN
-            self.df = GLARECluster.hdbscan_cluster(self.df)
+            self.df = self.hdbscan_cluster(self.df)
             pbar.update(1)
             # Run Spectral clustering
-            labeled_df = GLARECluster.spectral_cluster(self.df)
+            labeled_df = self.spectral_cluster(self.df)
             pbar.update(1)
         # If using other clustering algorithm, change the column name accordingly
         cluster_arr = [np.array(labeled_df['gmm']), np.array(labeled_df['hdbscan']),
