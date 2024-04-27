@@ -1,4 +1,5 @@
 # Utils
+import pandas as pd
 from utils import concat_df
 # Representation learning via Dimensionality Reduction
 from sklearn.decomposition import PCA
@@ -21,7 +22,7 @@ def get_pca(nc_df):
     # PCA, 2-dimension
     glds120_pca = PCA(n_components=2).fit_transform(nc_df)
     # Get full pca_df
-    pca_df = concat_df(glds120_pca, nc_df)
+    pca_df = concat_df(glds120_pca, nc_df, dimension=2)
 
     return pca_df
 
@@ -31,7 +32,7 @@ def get_tsne(nc_df):
     glds120_tsne = TSNE(n_components=2, random_state=1996, n_jobs=-1,
                         learning_rate='auto').fit_transform(nc_df)
     # Get full tsne_df
-    tsne_df = concat_df(glds120_tsne, nc_df)
+    tsne_df = concat_df(glds120_tsne, nc_df, dimension=2)
 
     return tsne_df
 
@@ -41,7 +42,7 @@ def get_umap(nc_df):
     glds120_umap = UMAP(n_neighbors=5, min_dist=0.0, spread=2, n_components=2,
                         random_state=1996).fit_transform(nc_df)
     # Get full umap_df
-    umap_df = concat_df(glds120_umap, nc_df)
+    umap_df = concat_df(glds120_umap, nc_df, dimension=2)
 
     return umap_df
 
@@ -83,7 +84,7 @@ class SparseAutoEncoder(nn.Module):
         return decoded
 
 
-def train_SAE(X, device, type):
+def train_SAE(X, device, exp_type):
     # Create a StandardScaler instance
     scaler = StandardScaler()
     # Fit the scaler to your data and transform it
@@ -103,7 +104,7 @@ def train_SAE(X, device, type):
     # scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
 
     # tuned early stopping #28 for FLT # 24 for GC # 34 for single-cell pretraining
-    num_epochs = 28 if type == 'FLT' else (24 if type == 'GC' else 34)
+    num_epochs = 28 if exp_type == 'FLT' else (24 if exp_type == 'GC' else 34)
     sparsity_penalty = 1e-5  # Adjust the sparsity penalty coefficient as needed
     for epoch in range(num_epochs):
         total_loss = 0.0
@@ -128,7 +129,7 @@ def train_SAE(X, device, type):
         print(f'Epoch [{epoch + 1}/{num_epochs}], Training Loss: {average_loss:.6f}')
 
     torch.save(sparse_autoencoder.state_dict(),
-               './weights/sc_shulse_pretrained.pth') if type == 'sc_pretrain' else None
+               './weights/sc_shulse_pretrained.pth') if exp_type == 'sc_pretrain' else None
 
     return sparse_autoencoder
 
@@ -171,8 +172,8 @@ def finetune_SAE_sc(X, pi_dim, weights, device):
     # LR scheduler if needed
     # scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
 
-    # tuned early stopping # 8 for FLT # 8 for GC
-    num_epochs = 8
+    # tuned early stopping
+    num_epochs = 12
     sparsity_penalty = 1e-5  # Adjust the sparsity penalty coefficient as needed
     for epoch in range(num_epochs):
         total_loss = 0.0
@@ -196,13 +197,13 @@ def finetune_SAE_sc(X, pi_dim, weights, device):
         average_loss = total_loss / len(data_loader)
         print(f'Epoch [{epoch + 1}/{num_epochs}], Training Loss: {average_loss:.7f}')
 
-        # Get checkpoint for every 4 epochs
-        if epoch == 4:  # FLT 4, GC 4
+        # Get checkpoint for every 4 epochs # Take the best performing checkpoint weights based on the loss
+        if (epoch + 1) % 4 == 0:  # For both FLT and GC, epoch = 4 yields best results # Take this weights for inference
             torch.save({
                 'epoch': epoch,
                 'model_state_dict': sparse_autoencoder.state_dict(),
                 'optimizer_state_dict': optimizer.state_dict(),
                 # Add other information as needed
-            }, f'./weights/finetune_checkpoint_epoch_{epoch}.pth')
+            }, f'./weights/finetune_checkpoint_epoch_{epoch + 1}.pth')
 
     return sparse_autoencoder
