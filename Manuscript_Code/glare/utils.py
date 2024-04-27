@@ -127,9 +127,9 @@ def preprocessing_kmeans(loc_df, location):
     loc_df_pca = loc_df_pca.astype({'cluster': 'str'})
     loc_df_pca['gene_id'] = loc_df['gene_id']
 
-    # export .csv for the preprocessing data, explore how the clusters are distributed
-    loc_df_pca.to_csv('outlier_detection_df_' + location + '.csv', index=False)
-    # Our found outliers for the GLDS-120 dataset
+    # # export .csv for the preprocessing data, explore how the clusters are distributed
+    # loc_df_pca.to_csv('outlier_detection_df_' + location + '.csv', index=False)
+    # Detected outliers for the GLDS-120 dataset
     outlier_gene_id =["AT3G41768", "ATMG00020", "AT1G07590"]
     # Clean df
     clean_df = loc_df.drop(loc_df[loc_df['gene_id'].isin(outlier_gene_id)].index).reset_index(drop=True)
