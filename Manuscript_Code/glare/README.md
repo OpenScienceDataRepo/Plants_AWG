@@ -8,6 +8,13 @@ Spaceflight studies present novel insights into biological processes through exp
 
 ![GLARE pipeline](figures/glare_diagram.png)
 
+## Installation
+
+Our code was tested on `Python 3.9`, to install other requirements:
+```setup
+pip install -r requirements.txt
+```
+
 ## Proof of concept
 
 Proof of concept study was presented at ASGSR 2021, where you can find the source code and the abstract poster at [POC_ASGSR2021](POC_ASGSR2021).
