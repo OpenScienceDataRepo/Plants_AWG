@@ -6,8 +6,16 @@ from sklearn.manifold import TSNE
 from sklearn.cluster import KMeans
 import matplotlib.pyplot as plt
 import matplotlib
+from scipy.stats import zscore
+from sklearn.neighbors import LocalOutlierFactor
 
 matplotlib.use('Agg')  # Do not print the plot
+# Initialize kmeans parameters
+kmeans_kwargs = {
+    "init": "k-means++",
+    "n_init": 10,
+    "random_state": 1,
+}
 
 # Original GLDS120 dataset's column names ordered
 GLDS120_features = ['gene_id',
@@ -90,17 +98,11 @@ def concat_df(representation, df, dimension):
     return coordinates_df
 
 
-def preprocessing_kmeans(loc_df, location):
+def initial_pca_elbow(loc_df, location):
     # Get data representation via pca
     # PCA in 3-dimension for 3d-plot
     loc_df_pca = PCA(n_components=3).fit_transform(loc_df.iloc[:, 1:-1])
     # Elbow method for k-means
-    # Initialize kmeans parameters
-    kmeans_kwargs = {
-        "init": "k-means++",
-        "n_init": 10,
-        "random_state": 1,
-    }
     # Create list to hold SSE values for each k
     sse_lst = []
     for k in range(1, 11):
@@ -116,8 +118,11 @@ def preprocessing_kmeans(loc_df, location):
     plt.ylabel("WCSS")
     plt.savefig('elbow_method_plot_' + location + '.png')
 
+    return loc_df_pca
+
+def initial_kmeans(loc_df, loc_df_pca, location):
     # After elbow method we set num_cluster = 5 for FLT and = 4 for GC
-    num_cluster = 5 if location == 'FLT' else 4
+    num_cluster = 5 if location == 'FLT' else 4 # Find the right cluster number for your dataset
     # Cluster with tuned number of cluster
     model = KMeans(n_clusters=num_cluster, **kmeans_kwargs)
     # Predict cluster and make df
@@ -127,10 +132,13 @@ def preprocessing_kmeans(loc_df, location):
     loc_df_pca = loc_df_pca.astype({'cluster': 'str'})
     loc_df_pca['gene_id'] = loc_df['gene_id']
 
-    # # export .csv for the preprocessing data, explore how the clusters are distributed
-    # loc_df_pca.to_csv('outlier_detection_df_' + location + '.csv', index=False)
+    # export .csv for the preprocessing data, explore how the clusters are distributed
+    loc_df_pca.to_csv('outlier_detection_df_' + location + '.csv', index=False)
     # Detected outliers for the GLDS-120 dataset
-    outlier_gene_id =["AT3G41768", "ATMG00020", "AT1G07590"]
+    outlier_gene_id = ["AT3G41768", "ATMG00020", "AT1G07590"]
+    # # Optional outlier detection methods
+    # outlier_gene_id = lof_od(loc_df)
+    # outlier_gene_id = zscore_pca(loc_df_pca, location)
     # Clean df
     clean_df = loc_df.drop(loc_df[loc_df['gene_id'].isin(outlier_gene_id)].index).reset_index(drop=True)
 
@@ -145,3 +153,20 @@ def tsne4viz(nc_df, representation, dim):
     rep_viz_df = concat_df(rep_viz, nc_df, dimension=dim)
 
     return rep_viz_df
+
+
+def lof_od(loc_df):
+    # Choose appropriate the hyperparameter based on your dataset
+    clf = LocalOutlierFactor(n_neighbors=100, contamination=1e-4)
+    loc_df['lof'] = clf.fit_predict(loc_df.iloc[:,1:-1])
+    # Get outliers based on LOF
+    return list(loc_df[loc_df['lof']==-1]['gene_id'])
+
+
+def zscore_pca(loc_df_pca, location):
+    # Get z-score for PC1
+    loc_df_pca['z_score'] = zscore(loc_df_pca['x'])
+    # Analyze the z-score by using the exported csv # Print out the distribution and choose appropriate threshold for outlier
+    loc_df_pca.to_csv('z_score_df_' + location + '.csv', index=False)
+    # Get outliers based on z-score analysis
+    return list(loc_df_pca[loc_df_pca['z_score']>1]['gene_id'])

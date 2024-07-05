@@ -16,7 +16,7 @@ from sklearn.model_selection import KFold
 # from sklearn.metrics import RocCurveDisplay, auc, confusion_matrix, classification_report
 
 # Preprocessing
-from utils import preprocessing_kmeans
+from utils import initial_pca_elbow, initial_kmeans
 
 # Data representations
 # from representation_learning import get_pca, get_tsne, get_umap
@@ -80,7 +80,7 @@ def verification(source_df):
         test_acc_lst.append(test_acc)
         # f1 score and roc-auc score
         f1_score_lst.append(f1_score(y_test, y_pred, average='binary'))
-        roc_auc_lst.append(roc_auc_score(y_test, y_pred))
+        roc_auc_lst.append(roc_auc_score(y_test, xgb_clf.predict_proba(X_test)[:,1]))
         # # Overall report
         # print(classification_report(y_test, y_pred))
 
@@ -92,8 +92,13 @@ def preprocessing(df):
     FLT_df = df[df['Location'] == 1].reset_index(drop=True)
     GC_df = df[df['Location'] == 0].reset_index(drop=True)
     # Preprocessing
-    clean_FLT_df = preprocessing_kmeans(FLT_df, 'FLT')
-    clean_GC_df = preprocessing_kmeans(GC_df, 'GC')
+    # Get pca and print elbow method plot for k-menas
+    pca_FLT_df = initial_pca_elbow(FLT_df, 'FLT')
+    pca_GC_df = initial_pca_elbow(GC_df, 'GC')
+    # Perform k-means clustering, and perform intial investigation on exported df
+    # Use appropriate outlier detection appropriate to your dataset
+    clean_FLT_df = initial_kmeans(FLT_df, pca_FLT_df, 'FLT')
+    clean_GC_df = initial_kmeans(GC_df, pca_GC_df, 'GC')
 
     return clean_FLT_df, clean_GC_df
 
@@ -165,7 +170,8 @@ if __name__ == "__main__":
     print('f1 score:', round(np.mean(f1_score_lst), 5), '+/-', round(np.std(f1_score_lst), 3))
     print('roc-auc:', round(np.mean(roc_auc_lst), 5), '+/-', round(np.std(roc_auc_lst), 3))
 
-    # Preprocessing
+    # Preprocessing 
+    # While we perform cluter-based outlier detection for preprocessing, choose suitable method for your specific data.
     clean_glds120_FLT, clean_glds120_GC = preprocessing(new_glds120)
 
     # ## Run other base representation learning algorithm
