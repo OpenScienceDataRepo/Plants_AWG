@@ -1,0 +1,86 @@
+#install packages from BiocManager (https://bioconductor.org/packages/devel/bioc/vignettes/SBGNview/inst/doc/SBGNview.quick.start.html)
+
+# Load necessary libraries
+library(DESeq2)
+library(dplyr)
+library(pathview)
+library(org.At.tair.db)
+library(SBGNview)
+
+# Load your data
+setwd("/Directory")
+df <- read.csv("arabid.csv")
+
+# Convert the first column to rownames (assuming first column is Gene ID)
+rownames(df) <- df[,1]
+df1 <- df[,-1]
+
+# Ensure the count data is integer
+df1 <- round(df1)
+
+# Check the dimensions of the data
+print(dim(df1))
+
+# Create a sample metadata dataframe (replace with actual metadata)
+num_samples <- ncol(df1)
+colData <- data.frame(
+  condition = factor(rep(c("control", "treatment"), each = num_samples / 2))
+)
+
+# Check the dimensions of the metadata
+print(dim(colData))
+
+# Create DESeq2 dataset
+dds <- DESeqDataSetFromMatrix(
+  countData = as.matrix(df1),
+  colData = colData,
+  design = ~ condition
+)
+
+# Run DESeq2 analysis
+dds <- DESeq(dds)
+
+# Extract results with log2 fold change
+res <- results(dds)
+
+# Normalize the expression data
+normalized_counts <- counts(dds, normalized = TRUE)
+
+#Select gene id names
+gene_names <- df$Gene_ID
+
+# Filter the results for all genes
+results <- res[rownames(res) %in% gene_names, ]
+
+# Map TAIR IDs to Entrez IDs
+gene_entrez <- mapIds(org.At.tair.db, keys = rownames(results), column = "ENTREZID", keytype = "TAIR", multiVals = "first")
+
+# Remove genes that could not be mapped
+mapped_genes <- !is.na(gene_entrez)
+results <- results[mapped_genes, ]
+gene_entrez <- gene_entrez[mapped_genes]
+
+#load SBGNview pathway database,  find desired pathways
+data("pathways.info", "sbgn.xmls")
+input.pathways <- findPathways("appropriate codenames of Metacrop pathway.id available at pathways.info")
+input.pathways
+
+#Generate SBGNview figure
+sbgnview.obj <- SBGNview(
+  gene.data = setNames(results$log2FoldChange, gene_entrez),
+  gene.id.type = "entrez",
+  input.sbgn = input.pathways$pathway.id[3],
+  output.file = "quick.start",
+  show.pathway.name = TRUE,
+  max.gene.value = 1,
+  min.gene.value = -1,
+  mid.gene.value = 0,
+  node.sum = "mean",
+  output.format = c("png"),
+  font.size = 2.3,
+  org = "ath",
+  text.length.factor.complex = 2,
+  if.scale.compartment.font.size = TRUE,
+  node.width.adjust.factor.compartment = 0.01 
+)
+print(sbgnview.obj)
