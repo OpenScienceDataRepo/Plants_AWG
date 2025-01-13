@@ -71,10 +71,13 @@ For questions, please contact the authors at [alexdseo@isi.edu].
 ## Citing GLARE
 
 If you use GLARE in your research, please cite our manuscript:
-**Pre Print**
+
+> **Pre Print**
+
 `
 Seo, D., Strickland, H. F., Zhou, M., Barker, R., Ferl, R. J., Paul, A. L., & Gilroy, S. (2024). GLARE: Discovering Hidden Patterns in Spaceflight Transcriptome Using Representation Learning. bioRxiv, 2024-06.
 `
+
 ```
 @article{seo2024glare,
   title={GLARE: Discovering Hidden Patterns in Spaceflight Transcriptome Using Representation Learning},
