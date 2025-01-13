@@ -114,7 +114,7 @@ def train_SAE(X, device, exp_type):
             outputs = sparse_autoencoder(batch_data.to(device))
             loss = criterion(outputs, batch_data.to(device))
             # Get the activations (outputs) from the bottleneck layer
-            encoded = sparse_autoencoder.encoder(batch_data.to(device))
+            encoded = sparse_autoencoder.encoder[-1](batch_data.to(device))
             # Add sparsity-inducing regularizer (L1 regularization) to the loss
             l1_regularization = torch.mean(torch.abs(encoded))  # Applying L1 to the bottleneck layer
             loss += sparsity_penalty * l1_regularization
@@ -183,7 +183,7 @@ def finetune_SAE_sc(X, pi_dim, weights, device):
             outputs = sparse_autoencoder(batch_data.to(device))
             loss = criterion(outputs, batch_data.to(device))
             # Get the activations (outputs) from the bottleneck layer
-            encoded = sparse_autoencoder.encoder(batch_data.to(device))
+            encoded = sparse_autoencoder.encoder[-1](batch_data.to(device))
             # Add sparsity-inducing regularizer (L1 regularization) to the loss
             l1_regularization = torch.mean(torch.abs(encoded))  # Applying L1 to the bottleneck layer
             loss += sparsity_penalty * l1_regularization
