@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 import matplotlib
 from scipy.stats import zscore
 from sklearn.neighbors import LocalOutlierFactor
+import re
 
 matplotlib.use('Agg')  # Do not print the plot
 # Initialize kmeans parameters
@@ -17,71 +18,93 @@ kmeans_kwargs = {
     "random_state": 1,
 }
 
-# Original GLDS120 dataset's column names ordered
-GLDS120_features = ['gene_id',
-                    'Atha_Col-0_root_FLT_Alight_Rep1_GSM2493777_Day13',
-                    'Atha_Col-0_root_FLT_Alight_Rep2_GSM2493778_Day13',
-                    'Atha_Col-0_root_FLT_Alight_Rep3_GSM2493779_Day13',
-                    'Atha_Col-0-PhyD_root_FLT_Alight_Rep1_GSM2493783_Day13',
-                    'Atha_Col-0-PhyD_root_FLT_Alight_Rep2_GSM2493784_Day13',
-                    'Atha_Col-0-PhyD_root_FLT_Alight_Rep3_GSM2493785_Day13',
-                    'Atha_Ws_root_FLT_Alight_Rep1_GSM2493780_Day13',
-                    'Atha_Ws_root_FLT_Alight_Rep2_GSM2493781_Day13',
-                    'Atha_Ws_root_FLT_Alight_Rep3_GSM2493782_Day13',
-                    'Atha_Col-0_root_FLT_dark_Rep1_GSM2493786_Day13',
-                    'Atha_Col-0_root_FLT_dark_Rep2_GSM2493787_Day13',
-                    'Atha_Col-0_root_FLT_dark_Rep3_GSM2493788_Day13',
-                    'Atha_Col-0-PhyD_root_FLT_dark_Rep1_GSM2493792_Day13',
-                    'Atha_Col-0-PhyD_root_FLT_dark_Rep2_GSM2493793_Day13',
-                    'Atha_Col-0-PhyD_root_FLT_dark_Rep3_GSM2493794_Day13',
-                    'Atha_Ws_root_FLT_dark_Rep1_GSM2493789_Day13',
-                    'Atha_Ws_root_FLT_dark_Rep2_GSM2493790_Day13',
-                    'Atha_Ws_root_FLT_dark_Rep3_GSM2493791_Day13',
-                    'Atha_Col-0_root_GC_Alight_Rep1_GSM2493759_Day13',
-                    'Atha_Col-0_root_GC_Alight_Rep2_GSM2493760_Day13',
-                    'Atha_Col-0_root_GC_Alight_Rep3_GSM2493761_Day13',
-                    'Atha_Col-0-PhyD_root_GC_Alight_Rep1_GSM2493765_Day13',
-                    'Atha_Col-0-PhyD_root_GC_Alight_Rep2_GSM2493766_Day13',
-                    'Atha_Col-0-PhyD_root_GC_Alight_Rep3_GSM2493767_Day13',
-                    'Atha_Ws_root_GC_Alight_Rep1_GSM2493762_Day13',
-                    'Atha_Ws_root_GC_Alight_Rep2_GSM2493763_Day13',
-                    'Atha_Ws_root_GC_Alight_Rep3_GSM2493764_Day13',
-                    'Atha_Col-0_root_GC_dark_Rep1_GSM2493768_Day13',
-                    'Atha_Col-0_root_GC_dark_Rep2_GSM2493769_Day13',
-                    'Atha_Col-0_root_GC_dark_Rep3_GSM2493770_Day13',
-                    'Atha_Col-0-PhyD_root_GC_dark_Rep1_GSM2493774_Day13',
-                    'Atha_Col-0-PhyD_root_GC_dark_Rep2_GSM2493775_Day13',
-                    'Atha_Col-0-PhyD_root_GC_dark_Rep3_GSM2493776_Day13',
-                    'Atha_Ws_root_GC_dark_Rep1_GSM2493771_Day13',
-                    'Atha_Ws_root_GC_dark_Rep2_GSM2493772_Day13',
-                    'Atha_Ws_root_GC_dark_Rep3_GSM2493773_Day13'
-                    ]
-# Change column names
-new_col_names = ['Rep1_c_l', 'Rep2_c_l', 'Rep3_c_l',
-                 'Rep1_p_l', 'Rep2_p_l', 'Rep3_p_l',
-                 'Rep1_w_l', 'Rep2_w_l', 'Rep3_w_l',
-                 'Rep1_c_d', 'Rep2_c_d', 'Rep3_c_d',
-                 'Rep1_p_d', 'Rep2_p_d', 'Rep3_p_d',
-                 'Rep1_w_d', 'Rep2_w_d', 'Rep3_w_d']
+def restructure_data(
+    df: pd.DataFrame,
+    condition_keywords: list,
+    first_keywords: list,
+    secondary_keywords: list = None,
+    replicate_identifier: str = "Rep",
+    id_col: str = "gene_id"
+) -> pd.DataFrame:
+    """
+    Generalized restructuring of GLDS data using data melting approach.
 
+    Args:
+        df (pd.DataFrame): Input wide-format DataFrame.
+        condition_keywords (list): Main experimental conditions (e.g. ['Flight', 'Ground control']).
+        first_keywords (list): Any other factors than FLT/GC suc as Genotypes (e.g. ['Col-0', 'WS', 'elp2-5']).
+        secondary_keywords (list): Additional factors that was used in the experiment (e.g. ['Leaves', 'Roots']).
+        replicate_identifier (str): Pattern to extract replicate info
+        id_col (str): Name of gene ID column.
 
-def restructure_data(source_df):
-    # Order df
-    nc_all = source_df[GLDS120_features]
-    # Get repeated gene_id df
-    gene_id_df = pd.DataFrame(np.repeat(nc_all['gene_id'].values, 2, axis=0), columns=['gene_id'])
-    # Create Location variable
-    LC = pd.DataFrame({"Location": ['FLT', 'GC']})
-    LC = pd.concat([LC] * len(nc_all)).reset_index(drop=True)
+    Returns:
+        pd.DataFrame: Restructured data via data melting.
+    """
+    expr_cols = [col for col in df.columns if col != id_col]
+    metadata = []
 
-    # Normalized counts (fpkm) data without id
-    nc_wo_id = nc_all.drop(columns=['gene_id'])
-    # Restructure dataset
-    new_nc = pd.DataFrame(nc_wo_id.values.reshape(-1, 2, 18).reshape(len(LC), 18), columns=new_col_names)
-    new_nc = pd.concat([gene_id_df, new_nc], axis=1)
-    new_nc['Location'] = LC
+    for col in expr_cols:
+        # Flatten column if it's a list 
+        col_str = col if isinstance(col, str) else col[0]
+        components = re.split(r'[,_]', col_str)  # Split by comma or underscore # Most case in GLDS/OSD datasets
 
-    return new_nc
+        cond = next((c for c in condition_keywords if any(c.lower() in comp.lower() for comp in components)), None)
+        genotype = next((g for g in first_keywords if any(g.lower() in comp.lower() for comp in components)), None)
+
+        secondary = None
+        if secondary_keywords:
+            secondary = next((s for s in secondary_keywords if any(s.lower() in comp.lower() for comp in components)), None)
+
+        rep = None
+        for comp in components:
+            if replicate_identifier.lower() in comp.lower():
+                match = re.search(r'(\d+)', comp)
+                if match:
+                    rep = f"{replicate_identifier}{match.group(1)}"
+                    break
+
+        if not all([cond, genotype, rep]):
+            raise ValueError(f"Could not parse all metadata from column: '{col_str}'")
+
+        label_parts = [rep, genotype]
+        if secondary:
+            label_parts.append(secondary)
+        label = "_".join(label_parts)
+
+        metadata.append({
+            "original_col": col,
+            "condition": cond,
+            "label": label
+        })
+
+    meta_df = pd.DataFrame(metadata)
+
+    # Melt data
+    long_df = df.melt(
+        id_vars=[id_col],
+        value_vars=meta_df['original_col'].tolist(),
+        var_name='original_col',
+        value_name='expression'
+    )
+
+    # Merge with metadata
+    long_df = long_df.merge(meta_df, on='original_col')
+
+    # Pivot to wide
+    wide_df = long_df.pivot_table(
+        index=[id_col, 'condition'],
+        columns='label',
+        values='expression'
+    ).reset_index()
+
+    # Rename condition to Location (for output consistency)
+    wide_df.rename(columns={'condition': 'Location'}, inplace=True)
+
+    # Optional column ordering
+    all_labels = sorted([col for col in wide_df.columns if col not in [id_col, 'Location']])
+    final_df = wide_df[[id_col] + all_labels + ['Location']]
+
+    return final_df
 
 
 def concat_df(representation, df, dimension):
