@@ -122,24 +122,24 @@ def SAE_inference(nc_df, device, location):
     return SAE_representation
 
 
-def FTSAE_inference(nc_df, pi_dim, weights, device, location):
+def FTSAE_inference(nc_df, pi_dim, weights, device, ft_epoch):
     # Finetune SAE # Check the log for the total loss while tuning, and pick the best weights accordingly
-    FTSAE_model = finetune_SAE_sc(nc_df, pi_dim, weights, device)
+    FTSAE_model = finetune_SAE_sc(nc_df, pi_dim, weights, device, ft_epoch)
     FTSAE_model.eval()
     # Create a StandardScaler instance
     scaler = StandardScaler()
     # Fit the scaler to your data and transform it
     X = scaler.fit_transform(np.array(nc_df))
     # To tensor
-    X = torch.tensor(X, dtype=torch.float32)#.to(device)
+    X = torch.tensor(X, dtype=torch.float32) # .to(device)
     # Use adapter layer
     adapter = Adapter(X.shape[1], pi_dim)
     X = adapter(X).clone().detach()
     # Inference
     input_dim = X.shape[1]
     model = SparseAutoEncoder(input_dim)
-    # Initialize the model
-    finetuned_weights = './weights/FLT_finetuned.pth' if location == 'FLT' else './weights/GC_finetuned.pth'
+    # Initialize the model # Weight from last epoch of fine-tuning step
+    finetuned_weights =  f'./weights/finetune_checkpoint_epoch_{ft_epoch}.pth' # './weights/FLT_finetuned.pth' if location == 'FLT' else './weights/GC_finetuned.pth'
     checkpoint = torch.load(finetuned_weights)  # Load the checkpoint file
     # Load the model state dict
     model.load_state_dict(checkpoint['model_state_dict'])

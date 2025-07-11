@@ -147,7 +147,7 @@ class Adapter(nn.Module):
         return x
 
 
-def finetune_SAE_sc(X, pi_dim, weights, device):
+def finetune_SAE_sc(X, pi_dim, weights, device, ft_epoch):
     # Create a StandardScaler instance
     scaler = StandardScaler()
     # Fit the scaler to your data and transform it
@@ -173,7 +173,7 @@ def finetune_SAE_sc(X, pi_dim, weights, device):
     # scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
 
     # tuned early stopping
-    num_epochs = 30 #12
+    num_epochs = ft_epoch #12
     sparsity_penalty = 1e-5  # Adjust the sparsity penalty coefficient as needed
     for epoch in range(num_epochs):
         total_loss = 0.0
@@ -197,8 +197,8 @@ def finetune_SAE_sc(X, pi_dim, weights, device):
         average_loss = total_loss / len(data_loader)
         print(f'Epoch [{epoch + 1}/{num_epochs}], Training Loss: {average_loss:.7f}')
 
-        # Get checkpoint for every 4 epochs # Take the best performing checkpoint weights based on the loss
-        if (epoch + 1) % 4 == 0:  # For both FLT and GC, epoch = 4 yields best results # Take this weights for inference
+        # Get checkpoint for every 5 epochs # Take the best performing checkpoint weights based on the loss
+        if (epoch + 1) % 5 == 0:
             torch.save({
                 'epoch': epoch,
                 'model_state_dict': sparse_autoencoder.state_dict(),
