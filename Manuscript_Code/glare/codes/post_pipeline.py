@@ -4,7 +4,7 @@ import json
 import shap
 from sklearn.preprocessing import StandardScaler
 import xgboost
-from utils import restructure_data
+from .utils import restructure_data
 
 
 class SHAP_PP:

@@ -1,6 +1,6 @@
 # Utils
 import pandas as pd
-from utils import concat_df
+from .utils import concat_df
 # Representation learning via Dimensionality Reduction
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE

@@ -7,7 +7,7 @@ import torch.optim as optim
 from torch.utils.data import DataLoader
 
 # Verification study
-from utils import restructure_data
+from .utils import restructure_data
 import xgboost
 from sklearn.preprocessing import StandardScaler
 from sklearn.metrics import roc_auc_score, f1_score
@@ -16,15 +16,15 @@ from sklearn.model_selection import KFold
 # from sklearn.metrics import RocCurveDisplay, auc, confusion_matrix, classification_report
 
 # Preprocessing
-from utils import initial_pca_elbow, initial_kmeans
+from .utils import initial_pca_elbow, initial_kmeans
 
 # Data representations
 # from representation_learning import get_pca, get_tsne, get_umap
-from representation_learning import train_SAE, finetune_SAE_sc, Adapter, SparseAutoEncoder
+from .representation_learning import train_SAE, finetune_SAE_sc, Adapter, SparseAutoEncoder
 from scipy.io import mmread
-from utils import tsne4viz
+from .utils import tsne4viz
 # Clustering
-from clustering import GLARECluster
+from .clustering import GLARECluster
 
 # Set environment
 # os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:64'
@@ -32,11 +32,11 @@ torch.cuda.empty_cache()
 torch.manual_seed(2023)
 
 
-def verification(source_df):
-    # Restructure data vis discretization
-    new_nc = restructure_data(source_df)
+def verification(new_nc, labels = ["FLT", "GC"]):
+    # Take restructured data vis discretization
     # Encode the label
-    new_nc.replace({"Location": {"FLT": 1, "GC": 0}}, inplace=True)
+    new_nc["Location"] = new_nc["Location"].replace({labels[0]: 1, labels[1]: 0})
+    new_nc = new_nc.infer_objects(copy=False)
     # Set for training supervised learning on labeled dataset
     X = new_nc.iloc[:, 1:-1]
     y = new_nc['Location'].values
@@ -164,7 +164,16 @@ if __name__ == "__main__":
     glds120_nc.rename(columns={'Unnamed: 0': 'gene_id'}, inplace=True)
 
     # Verification study
-    new_glds120, test_acc_lst, f1_score_lst, roc_auc_lst = verification(glds120_nc)
+    glds120 = restructure_data(
+        df=glds120_nc,
+        condition_keywords=['FLT', 'GC'],
+        first_keywords=['Col-0-PhyD', 'Col-0', 'Ws'],
+        secondary_keywords=['Alight', 'dark'],
+        replicate_identifier='Rep',
+        id_col='gene_id'
+    )
+
+    new_glds120, test_acc_lst, f1_score_lst, roc_auc_lst = verification(glds120)
     # Print verification study result
     print('test accuracy:', np.mean(test_acc_lst), '+/-', round(np.std(test_acc_lst), 3))
     print('f1 score:', round(np.mean(f1_score_lst), 5), '+/-', round(np.std(f1_score_lst), 3))

@@ -13,11 +13,11 @@ from sklearn.preprocessing import StandardScaler
 
 # Data representations
 # from representation_learning import get_pca, get_tsne, get_umap
-from representation_learning import Adapter
+from .representation_learning import Adapter
 from scipy.io import mmread
-from utils import tsne4viz
+from .utils import tsne4viz
 # Clustering
-from clustering import GLARECluster
+from .clustering import GLARECluster
 
 # Set environment
 # os.environ['PYTORCH_CUDA_ALLOC_CONF'] = 'max_split_size_mb:64'
