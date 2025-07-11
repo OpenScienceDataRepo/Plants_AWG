@@ -45,7 +45,7 @@ def verification(source_df):
     # 5-fold cross validation
     kf = KFold(n_splits=5, random_state=2023, shuffle=True)
     for i, (train_index, test_index) in enumerate(kf.split(X)):
-        X_train, X_test = X[train_index], X[test_index]
+        X_train, X_test = X.iloc[train_index], X.iloc[test_index]
         y_train, y_test = y[train_index], y[test_index]
         # Training xgboost for classification, with tuned hyperparameter
         xgb_clf = xgboost.XGBClassifier(n_estimators=500, max_depth=10, n_jobs=-1, random_state=1996)
@@ -131,7 +131,7 @@ def FTSAE_inference(nc_df, pi_dim, weights, device, location):
     # Fit the scaler to your data and transform it
     X = scaler.fit_transform(np.array(nc_df))
     # To tensor
-    X = torch.tensor(X, dtype=torch.float32).to(device)
+    X = torch.tensor(X, dtype=torch.float32)#.to(device)
     # Use adapter layer
     adapter = Adapter(X.shape[1], pi_dim)
     X = adapter(X).clone().detach()

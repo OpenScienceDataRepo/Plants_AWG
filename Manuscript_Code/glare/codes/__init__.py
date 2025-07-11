@@ -1,3 +1,3 @@
-from utils import *
-from representation_learning import *
-from clustering import *
+from .utils import *
+from .representation_learning import *
+from .clustering import *

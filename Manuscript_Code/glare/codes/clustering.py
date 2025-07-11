@@ -18,7 +18,7 @@ class GLARECluster:
         num_cluster = 20 if self.location == 'FLT' else 25
         # GMM # value for max_iter can be changed after tuning
         gmm = GaussianMixture(n_components=num_cluster, random_state=2024, n_init=num_cluster,
-                              max_iter=300).fit_predict(self.representation)
+                              max_iter=100).fit_predict(self.representation)
         self.df['gmm'] = gmm
         # # Change the dtype of the cluster label
         # df['gmm'] = df['gmm'].apply(str)
@@ -28,7 +28,7 @@ class GLARECluster:
     def hdbscan_cluster(self):
         # HDBSCAN doesn't require number of clusters # Set hyperparameter # Can be changed after tuning
         hp_cs = 60 if self.location == 'FLT' else 50
-        hdbscan_result = hdbscan.HDBSCAN(min_cluster_size=hp_cs, min_samples=hp_cs / 2,
+        hdbscan_result = hdbscan.HDBSCAN(min_cluster_size=hp_cs, min_samples= int(hp_cs / 2),
                                          cluster_selection_method='leaf',
                                          prediction_data=True).fit(self.representation)
         # membership vector for soft clustering
@@ -66,13 +66,13 @@ class GLARECluster:
         # Run base clustering algorithms to get all labels
         with tqdm(total=3, desc="Running Base Clustering...") as pbar:
             # Run GMM
-            self.df = self.gmm_cluster(self.df)
+            self.df = self.gmm_cluster()
             pbar.update(1)
             # Run HDBSCAN
-            self.df = self.hdbscan_cluster(self.df)
+            self.df = self.hdbscan_cluster()
             pbar.update(1)
             # Run Spectral clustering
-            labeled_df = self.spectral_cluster(self.df)
+            labeled_df = self.spectral_cluster()
             pbar.update(1)
         # If using other clustering algorithm, change the column name accordingly
         cluster_arr = [np.array(labeled_df['gmm']), np.array(labeled_df['hdbscan']),

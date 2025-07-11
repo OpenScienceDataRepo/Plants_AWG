@@ -104,7 +104,7 @@ def train_SAE(X, device, exp_type):
     # scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
 
     # tuned early stopping #28 for FLT # 24 for GC # 34 for single-cell pretraining
-    num_epochs = 28 if exp_type == 'FLT' else (24 if exp_type == 'GC' else 34)
+    num_epochs = 30 # 28 if exp_type == 'FLT' else (24 if exp_type == 'GC' else 34)
     sparsity_penalty = 1e-5  # Adjust the sparsity penalty coefficient as needed
     for epoch in range(num_epochs):
         total_loss = 0.0
@@ -168,12 +168,12 @@ def finetune_SAE_sc(X, pi_dim, weights, device):
     # Load weights
     sparse_autoencoder.load_state_dict(torch.load(weights))
     criterion = nn.MSELoss()
-    optimizer = optim.Adam(sparse_autoencoder.parameters(), lr=0.001, weight_decay=0.0001)
+    optimizer = optim.Adam(sparse_autoencoder.parameters(), lr=0.001) # Turn off weight decay #, weight_decay=0.0001
     # LR scheduler if needed
     # scheduler = optim.lr_scheduler.StepLR(optimizer, step_size=10, gamma=0.5)
 
     # tuned early stopping
-    num_epochs = 12
+    num_epochs = 30 #12
     sparsity_penalty = 1e-5  # Adjust the sparsity penalty coefficient as needed
     for epoch in range(num_epochs):
         total_loss = 0.0
@@ -188,8 +188,8 @@ def finetune_SAE_sc(X, pi_dim, weights, device):
             l1_regularization = torch.mean(torch.abs(encoded))  # Applying L1 to the bottleneck layer
             loss += sparsity_penalty * l1_regularization
             loss.backward()
-            # Apply gradient clipping here
-            torch.nn.utils.clip_grad_norm_(sparse_autoencoder.parameters(), max_norm=1)
+            # Apply gradient clipping here # Turn off gradient clipping for fine-tuning
+            # torch.nn.utils.clip_grad_norm_(sparse_autoencoder.parameters(), max_norm=1)
             optimizer.step()
             # scheduler.step()
             total_loss += loss.item()
