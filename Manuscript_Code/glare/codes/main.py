@@ -32,9 +32,10 @@ torch.cuda.empty_cache()
 torch.manual_seed(2023)
 
 
-def verification(new_nc, labels = ["FLT", "GC"]):
+def verification(nc, labels = ["FLT", "GC"]):
     # Take restructured data vis discretization
     # Encode the label
+    new_nc = nc.copy()
     new_nc["Location"] = new_nc["Location"].replace({labels[0]: 1, labels[1]: 0})
     new_nc = new_nc.infer_objects(copy=False)
     # Set for training supervised learning on labeled dataset
