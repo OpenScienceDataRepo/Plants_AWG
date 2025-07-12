@@ -50,13 +50,15 @@ pip install -r requirements.txt
 2. Applying GLARE to new data:
     1. Choose the dataset that you want to study from the [NASA Open Science Data Repository](https://osdr.nasa.gov/bio/repo/search?q=&data_source=cgene,alsda&data_type=study). Find an appropriate dataset, for example a transcriptome data from experiments like the CARA study. Find the related single-cell data that you want to train your model with before fine-tuning with your GeneLab data.
 
-    2. Run the Analysis pipeline. Run `hpt.py` to fine-tune all the hyperparmeters for the model, pre-train the SAE model with single-cell data, fine-tune the SAE model with your GeneLab data, and to cluster and visualize the final data representations. Upon producing multiple data representation for comparison, you can run `evaluation.py` to perform a evalution study.
+    2. (a) Run the Analysis pipeline. Run `hpt.py` to fine-tune all the hyperparmeters for the model, pre-train the SAE model with single-cell data, fine-tune the SAE model with your GeneLab data, and to cluster and visualize the final data representations. Upon producing multiple data representation for comparison, you can run `evaluation.py` to perform a evalution study.
     ```
     cd codes
     python hpt.py --*Path to your GeneLab Data.csv* --*Path to your single-cell data.mtx*
     ```
 
-    3. Depending on the type of the dataset, for example having multiple experiments from different gravity setting such as CARA dataset, researchers can also perform verification study and SHAP analysis. Adjust the function `restructure_data` from `utils.py` and `verification_study` from `main.py` accordingly to your dataset to perform these analyses. Other post pipeline analyses such as Gene Ontology analysis using [Metascape](http://metascape.org) can also be applied to your clutering result.
+    2. (b) See `demo.ipynb` on running GLARE with set hyperparmeters on other GeneLab datsets than CARA dataset (OSD-120). This demo includes GLARE results, including final ensemble clusters, from OSD-217, OSD-406, and OSD-427.
+
+    3. Depending on the type of the dataset, for example having multiple experiments from different gravity setting such as CARA dataset, researchers can also perform verification study and SHAP analysis. Other post pipeline analyses such as Gene Ontology analysis using [Metascape](http://metascape.org) can also be applied to your clutering result.
 
 
 ## Community Support
